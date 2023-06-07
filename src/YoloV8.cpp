@@ -1,6 +1,6 @@
-#include "YoloV5.hpp"
+#include "YoloV8.hpp"
 
-YoloV5::YoloV5(
+YoloV8::YoloV8(
     const std::vector<std::string>& classNames,
     std::string modelConfiguration, 
     std::string modelBinary, 
@@ -24,7 +24,7 @@ YoloV5::YoloV5(
 
 }
 
-cv::Mat YoloV5::preprocess_img(const cv::Mat& img) {
+cv::Mat YoloV8::preprocess_img(const cv::Mat& img) {
     int w, h, x, y;
     float r_w = network_width_ / (img.cols*1.0);
     float r_h = network_height_ / (img.rows*1.0);
@@ -46,7 +46,7 @@ cv::Mat YoloV5::preprocess_img(const cv::Mat& img) {
     return out;
 }
 
-cv::Rect YoloV5::get_rect(const cv::Size& imgSize, const std::vector<float>& bbox) 
+cv::Rect YoloV8::get_rect(const cv::Size& imgSize, const std::vector<float>& bbox) 
 {
     float l, r, t, b;
     float r_w = network_width_/ (imgSize.width * 1.0);
@@ -73,9 +73,10 @@ cv::Rect YoloV5::get_rect(const cv::Size& imgSize, const std::vector<float>& bbo
     return cv::Rect(round(l), round(t), round(r - l), round(b - t));
 }
 
-std::vector<Detection> YoloV5::run_detection(const Mat& frame){    
-    cv::Mat inputBlob = preprocess_img(frame);
-    cv::dnn::blobFromImage(inputBlob, inputBlob, 1 / 255.F, cv::Size(), cv::Scalar(), true, false);
+std::vector<Detection> YoloV8::run_detection(const Mat& frame){    
+    cv::Mat inputPreprocessed = preprocess_img(frame);
+    cv::Mat inputBlob;
+    cv::dnn::blobFromImage(inputPreprocessed, inputBlob, 1 / 255.F, cv::Size(inputPreprocessed.rows, inputPreprocessed.cols), cv::Scalar(), true, false);
     std::vector<cv::Mat> outs;
     std::vector<int> classIds;
     std::vector<float> confidences;
@@ -87,39 +88,41 @@ std::vector<Detection> YoloV5::run_detection(const Mat& frame){
     float x_factor = frame.cols / network_width_;
     float y_factor = frame.rows / network_height_;
 
-    float *data = (float *)outs[0].data;
+
 
     int rows = outs[0].size[1];
     int dimensions = outs[0].size[2];
-    // Iterate through 25200 detections.
-    for (int i = 0; i < rows; ++i) 
+
+    if (dimensions > rows) 
     {
-        float confidence = data[4];
-        // Discard bad detections and continue.
-        if (confidence >= confidenceThreshold_) 
+        rows = outs[0].size[2];
+        dimensions = outs[0].size[1];
+
+        outs[0] = outs[0].reshape(1, dimensions);
+        cv::transpose(outs[0], outs[0]);
+    }   
+
+    float *data = (float *)outs[0].data;
+  
+    for (int i = 0; i < rows; ++i)
+    {
+        float *classes_scores = data+4;
+
+        cv::Mat scores(1, classNames_.size(), CV_32FC1, classes_scores);
+        cv::Point class_id;
+        double maxClassScore;
+
+        minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
+
+        if (maxClassScore > score_threshold_)
         {
-            float * classes_scores = data + 5;
-            // Create a 1x85 Mat and store class scores of 80 classes.
-            cv::Mat scores(1, classNames_.size(), CV_32FC1, classes_scores);
-            // Perform minMaxLoc and acquire index of best class score.
-            Point class_id;
-            double max_class_score;
-            minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
-            // Continue if the class score is above the threshold.
-            if (max_class_score > score_threshold_) 
-            {
-                // Store class ID and confidence in the pre-defined respective vectors.
-                std::vector<float> bbox(&data[0], &data[4]);
-                confidences.push_back(confidence);
-                classIds.push_back(class_id.x);
-                cv::Rect r = get_rect(frame.size(), bbox);
+            confidences.push_back(maxClassScore);
+            classIds.push_back(class_id.x);
+            std::vector<float> bbox(&data[0], &data[4]);
+            cv::Rect r = get_rect(frame.size(), bbox);
 
-                // Store good detections in the boxes vector.
-                boxes.push_back(r);
-            }
-
+            boxes.push_back(r);
         }
-        // Jump to the next column.
         data += dimensions;
     }
 
