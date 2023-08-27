@@ -1,15 +1,6 @@
-#include "YoloV8.hpp"
+#include "YoloNas.hpp"
 
-std::string YoloV8::print_shape(const std::vector<std::int64_t>& v)
-{
-    std::stringstream ss("");
-    for (std::size_t i = 0; i < v.size() - 1; i++)
-        ss << v[i] << "x";
-    ss << v[v.size() - 1];
-    return ss.str();
-}
-
-YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
+YoloNas::YoloNas(const std::string& model_path, bool use_gpu,
     float confidenceThreshold,
     size_t network_width,
     size_t network_height) : 
@@ -17,8 +8,8 @@ YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
             network_width,
             network_height}
 {
-    logger_->info("Initializing YoloV8 onnx runtime");
-    env_=Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YoloV8");
+    logger_->info("Initializing YoloNas onnx runtime");
+    env_=Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YoloNas");
 
     Ort::SessionOptions session_options;
 
@@ -77,7 +68,7 @@ YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
     network_height_ = static_cast<int>(input_shapes_[0][2]);
     channels_ = static_cast<int>(input_shapes_[0][1]);
     logger_->info("channels {}", channels_);
-    logger_->info("w {}", network_width_);
+    logger_->info("winput_width_ {}", network_width_);
     logger_->info("h {}", network_height_);
 
     // print name/shape of outputs
@@ -91,8 +82,16 @@ YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
     }
 }
 
+std::string YoloNas::print_shape(const std::vector<std::int64_t>& v)
+{
+    std::stringstream ss("");
+    for (std::size_t i = 0; i < v.size() - 1; i++)
+        ss << v[i] << "x";
+    ss << v[v.size() - 1];
+    return ss.str();
+}
 
-std::vector<Detection> YoloV8::run_detection(const cv::Mat& image)
+std::vector<Detection> YoloNas::run_detection(const cv::Mat& image)
 {
     std::vector<std::vector<float>> input_tensors(session_.GetInputCount());
     std::vector<Ort::Value> in_ort_tensors;
@@ -134,8 +133,42 @@ std::vector<Detection> YoloV8::run_detection(const cv::Mat& image)
     const float* output0 = output_ort_tensors[0].GetTensorData<float>();
 
     const auto& shape0_ref = output_ort_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
+        assert(output_ort_tensors.size() == output_names_.size());
 
-    std::vector<int64_t> shape0(shape0_ref.begin(), shape0_ref.end());
+    const float* output1 = output_ort_tensors[1].GetTensorData<float>();
+
+    const auto& shape1_ref = output_ort_tensors[1].GetTensorTypeAndShapeInfo().GetShape();
+
+    std::vector<int64_t> shape0(shape0_ref.begin(), shape0_ref.end()); // boxes 1x8400x4
+    std::vector<int64_t> shape1(shape1_ref.begin(), shape1_ref.end()); // scores 1x8400x80
     cv::Size frame_size(image.cols, image.rows);
-    return postprocess(output0, shape0, frame_size);
+    return postprocess(output0, output1, shape0, shape1, frame_size);   
+}
+
+std::vector<Detection> YoloNas::postprocess(const float* output0, const float* output1 ,const std::vector<int64_t>& shape0, const std::vector<int64_t>& shape1, const cv::Size& frame_size)
+{
+    return std::vector<Detection>{};    
+}
+
+std::vector<float> YoloNas::preprocess_image(const cv::Mat& image)
+{
+    cv::Mat blob;
+    cv::cvtColor(image, blob, cv::COLOR_BGR2RGB);
+    cv::Mat resized_image(network_height_, network_width_, CV_8UC3);
+    cv::resize(blob, resized_image, resized_image.size(), 0, 0, cv::INTER_LINEAR);
+    cv::Mat output_image;
+    resized_image.convertTo(output_image, CV_32FC3, 1.f / 255.f);        
+
+    size_t img_byte_size = output_image.total() * output_image.elemSize();  // Allocate a buffer to hold all image elements.
+    std::vector<float> input_data = std::vector<float>(network_width_ * network_height_ * channels_);
+    std::memcpy(input_data.data(), output_image.data, img_byte_size);
+
+    std::vector<cv::Mat> chw;
+    for (size_t i = 0; i < channels_; ++i)
+    {
+        chw.emplace_back(cv::Mat(cv::Size(network_width_, network_height_), CV_32FC1, &(input_data[i * network_width_ * network_height_])));
+    }
+    cv::split(output_image, chw);
+
+    return input_data;    
 }
