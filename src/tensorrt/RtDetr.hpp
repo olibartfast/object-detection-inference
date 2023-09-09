@@ -1,12 +1,12 @@
 #pragma once
-#include "Yolo.hpp"
+#include "Detector.hpp"
 #include <NvInfer.h>  // for TensorRT API
 #include <cuda_runtime_api.h>  // for CUDA runtime API
 #include <fstream>
 
 #include "Logger.hpp"
 
-class YoloV8 : public Yolo
+class RtDetr : public Detector
 {
 private:
     std::shared_ptr<nvinfer1::ICudaEngine> engine_{nullptr};
@@ -17,7 +17,7 @@ private:
     nvinfer1::IRuntime* runtime_{nullptr};
 
 public:
-    YoloV8(const std::string& model_path, bool use_gpu = false,
+    RtDetr(const std::string& model_path, bool use_gpu = false,
         float confidenceThreshold = 0.25,
         size_t network_width = 640,
         size_t network_height = 640);
@@ -36,7 +36,7 @@ public:
 
 
     // Destructor
-    ~YoloV8()
+    ~RtDetr()
     {
         for (void* buffer : buffers_)
         {
@@ -45,5 +45,7 @@ public:
     }
 
     std::vector<Detection> run_detection(const cv::Mat& image) override;     
+    std::vector<float> preprocess_image(const cv::Mat& image);
+    std::vector<Detection> postprocess(const float* output0, const std::vector<int64_t>& shape0, const cv::Size& frame_size);   
 };
  
