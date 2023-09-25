@@ -1,6 +1,6 @@
-#include "YoloV8.hpp"
+#include "YoloVn.hpp"
 
-YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
+YoloVn::YoloVn(const std::string& model_path, bool use_gpu,
     float confidenceThreshold,
     size_t network_width,
     size_t network_height) : 
@@ -8,11 +8,11 @@ YoloV8::YoloV8(const std::string& model_path, bool use_gpu,
             network_width,
             network_height}
 {
-    logger_->info("Running YoloV8 onnx runtime");
+    logger_->info("Running onnx runtime for {}", model_path);
 }
 
 
-std::vector<Detection> YoloV8::run_detection(const cv::Mat& image)
+std::vector<Detection> YoloVn::run_detection(const cv::Mat& image)
 {
     std::vector<std::vector<float>> input_tensors(session_.GetInputCount());
     std::vector<Ort::Value> in_ort_tensors;
@@ -61,7 +61,7 @@ std::vector<Detection> YoloV8::run_detection(const cv::Mat& image)
 }
 
 
-cv::Rect YoloV8::get_rect(const cv::Size& imgSz, const std::vector<float>& bbox)
+cv::Rect YoloVn::get_rect(const cv::Size& imgSz, const std::vector<float>& bbox)
 {
     float r_w = network_width_ / static_cast<float>(imgSz.width);
     float r_h = network_height_ / static_cast<float>(imgSz.height);
@@ -98,7 +98,7 @@ cv::Rect YoloV8::get_rect(const cv::Size& imgSz, const std::vector<float>& bbox)
 }
 
 
-std::vector<float> YoloV8::preprocess_image(const cv::Mat &image)
+std::vector<float> YoloVn::preprocess_image(const cv::Mat &image)
 {
     cv::Mat blob;
     cv::cvtColor(image, blob, cv::COLOR_BGR2RGB);
@@ -142,28 +142,10 @@ std::vector<float> YoloV8::preprocess_image(const cv::Mat &image)
 }
 
 
-std::vector<Detection> YoloV8::postprocess(const float*  output0, const  std::vector<int64_t>& shape0,  const cv::Size& frame_size)
+std::vector<Detection> YoloVn::postprocess(const float*  output0, const  std::vector<int64_t>& shape0,  const cv::Size& frame_size)
 {
-
-    const auto offset = 4;
-    const auto num_classes = shape0[1] - offset;
-    std::vector<std::vector<float>> output0_matrix(shape0[1], std::vector<float>(shape0[2]));
-
-    // Construct output matrix
-    for (size_t i = 0; i < shape0[1]; ++i) {
-        for (size_t j = 0; j < shape0[2]; ++j) {
-            output0_matrix[i][j] = output0[i * shape0[2] + j];
-        }
-    }
-
-    std::vector<std::vector<float>> transposed_output0(shape0[2], std::vector<float>(shape0[1]));
-
-    // Transpose output matrix
-    for (int i = 0; i < shape0[1]; ++i) {
-        for (int j = 0; j < shape0[2]; ++j) {
-            transposed_output0[j][i] = output0_matrix[i][j];
-        }
-    }
+ const auto offset = 5;
+    const auto num_classes = shape0[2] - offset; // 1 x 25200 x 85
 
     std::vector<cv::Rect> boxes;
     std::vector<float> confs;
@@ -173,18 +155,21 @@ std::vector<Detection> YoloV8::postprocess(const float*  output0, const  std::ve
     std::vector<std::vector<float>> picked_proposals;
 
     // Get all the YOLO proposals
-    for (int i = 0; i < shape0[2]; ++i) {
-        const auto& row = transposed_output0[i];
-        const float* bboxesPtr = row.data();
-        const float* scoresPtr = bboxesPtr + 4;
-        auto maxSPtr = std::max_element(scoresPtr, scoresPtr + num_classes);
-        float score = *maxSPtr;
-        if (score > confidenceThreshold_) {
-            boxes.emplace_back(get_rect(frame_size, std::vector<float>(bboxesPtr, bboxesPtr + 4)));
-            int label = maxSPtr - scoresPtr;
-            confs.emplace_back(score);
-            classIds.emplace_back(label);
+    for (int i = 0; i < shape0[1]; ++i) {
+        if(output0[4] > confidenceThreshold_)
+        {
+            const float* scoresPtr = output0 + 5;
+            auto maxSPtr = std::max_element(scoresPtr, scoresPtr + num_classes);
+            float score = *maxSPtr;
+            if (score > confidenceThreshold_) {
+                boxes.emplace_back(get_rect(frame_size, std::vector<float>(output0, output0 + 4)));
+                int label = maxSPtr - scoresPtr;
+                confs.emplace_back(score);
+                classIds.emplace_back(label);
+            }
+
         }
+        output0 += shape0[2]; 
     }
 
     // Perform Non Maximum Suppression and draw predictions.
