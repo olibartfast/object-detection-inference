@@ -46,8 +46,12 @@ add_subdirectory(${DETECTORS_ROOT})
 include(AddCompileDefinitions)
 
 # Main executable
-set(SOURCES main.cpp src/ObjectDetectionApp.cpp src/utils.cpp src/DetectorSetup.cpp)
-add_executable(${PROJECT_NAME} ${SOURCES})
+#set(SOURCES main.cpp src/ObjectDetectionApp.cpp src/utils.cpp src/DetectorSetup.cpp)
+
+set(SOURCES src/ObjectDetectionApp.cpp src/utils.cpp src/DetectorSetup.cpp)
+
+add_library(${PROJECT_NAME} SHARED  ${SOURCES})
+#add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/inc
