@@ -243,13 +243,43 @@ docker run --rm \
     --labels=/labels/<labels_file>
 ```
 
-
 For GPU support, add `--gpus all` to the docker run command.
+
+## 🤖 ROS2 Deployment
+
+Deploy the object detection framework as a ROS2 node for robotics applications. The ROS2 wrapper provides seamless integration with camera topics and publishes detection results as standard ROS2 messages.
+
+### Quick Start
+
+```bash
+# Build the ROS2 package
+cd ros2_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select object_detection_ros
+source install/setup.bash
+
+# Launch with your camera
+ros2 launch object_detection_ros detection.launch.py \
+    model_type:=yolov8 \
+    weights_path:=/path/to/yolov8s.onnx \
+    labels_path:=/path/to/coco.names
+```
+
+### Features
+- Subscribe to any `sensor_msgs/Image` camera topic
+- Publish detections as `vision_msgs/Detection2DArray`
+- Real-time annotated image visualization
+- Support for all detector models (YOLO, RT-DETR, RF-DETR, etc.)
+- GPU acceleration support
+- Compatible with standard ROS2 camera drivers (usb_cam, realsense2_camera, etc.)
+
+For complete ROS2 deployment instructions, see the [ROS2 Deployment Guide](docs/ROS2-Deployment.md).
 
 
 ## 📚 Additional Resources
 
 - [Detector Architectures Guide](docs/DetectorArchitectures.md)
+- [ROS2 Deployment Guide](docs/ROS2-Deployment.md)
 - [Supported Models](docs/TablePage.md)
 - [Model Export Guide](docs/ExportInstructions.md)
 - Backend-specific export documentation:

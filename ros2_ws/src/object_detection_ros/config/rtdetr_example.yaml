@@ -1,0 +1,13 @@
+# Example configuration for RT-DETR detector
+model_type: "rtdetrul"
+weights_path: "/path/to/rtdetr-l.onnx"
+labels_path: "/path/to/coco.names"
+confidence_threshold: 0.3
+use_gpu: true
+publish_debug_image: true
+input_sizes: [3, 640, 640]
+
+# ROS topics
+image_topic: "/camera/image_raw"
+detection_topic: "/detections"
+debug_image_topic: "/detection_image"

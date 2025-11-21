@@ -1,0 +1,13 @@
+# Example configuration for YOLOv8 detector
+model_type: "yolov8"
+weights_path: "/path/to/yolov8s.onnx"
+labels_path: "/path/to/coco.names"
+confidence_threshold: 0.25
+use_gpu: false
+publish_debug_image: true
+input_sizes: [3, 640, 640]
+
+# ROS topics
+image_topic: "/camera/image_raw"
+detection_topic: "/detections"
+debug_image_topic: "/detection_image"
