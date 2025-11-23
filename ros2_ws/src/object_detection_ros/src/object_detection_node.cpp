@@ -68,15 +68,30 @@ ObjectDetectionNode::ObjectDetectionNode()
     
     RCLCPP_INFO(this->get_logger(), "Loaded %zu class labels", class_labels_.size());
     
-    // Setup detector
+    // Setup inference engine and detector
     try {
-        detector_ = setupDetector(
-            model_type_,
-            weights_path_,
-            input_sizes_,
-            confidence_threshold_,
-            use_gpu_
-        );
+        // Convert input sizes to format expected by setup_inference_engine
+        std::vector<std::vector<int64_t>> input_sizes_2d;
+        if (!input_sizes_.empty()) {
+            std::vector<int64_t> input_sizes_int64(input_sizes_.begin(), input_sizes_.end());
+            input_sizes_2d.push_back(input_sizes_int64);
+        }
+
+        // Setup inference engine
+        engine_ = setup_inference_engine(weights_path_, use_gpu_, 1, input_sizes_2d);
+        if (!engine_) {
+            throw std::runtime_error("Failed to setup inference engine for " + weights_path_);
+        }
+
+        // Get model info from engine
+        const auto model_info = engine_->get_model_info();
+
+        // Create detector
+        detector_ = DetectorSetup::createDetector(model_type_, model_info);
+        if (!detector_) {
+            throw std::runtime_error("Failed to setup detector " + model_type_);
+        }
+
         RCLCPP_INFO(this->get_logger(), "Detector initialized successfully");
         RCLCPP_INFO(this->get_logger(), "  Model type: %s", model_type_.c_str());
         RCLCPP_INFO(this->get_logger(), "  Weights: %s", weights_path_.c_str());
@@ -120,7 +135,16 @@ void ObjectDetectionNode::imageCallback(const sensor_msgs::msg::Image::ConstShar
         
         // Run detection
         auto start = std::chrono::high_resolution_clock::now();
-        std::vector<Detection> detections = detector_->detect(image);
+
+        // Preprocess
+        const auto input_blob = detector_->preprocess_image(image);
+
+        // Inference
+        const auto [outputs, shapes] = engine_->get_infer_results(input_blob);
+
+        // Postprocess
+        std::vector<Detection> detections = detector_->postprocess(outputs, shapes, image.size());
+
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         

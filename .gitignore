@@ -6,3 +6,5 @@ build
 data/processed.png
 logs
 build_tests/
+
+ros2_ws/log

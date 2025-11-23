@@ -28,6 +28,10 @@ set(OBJECT_DETECTION_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../" CACHE PATH "Pa
 include_directories(
   include
   ${OBJECT_DETECTION_ROOT}/detectors/inc
+  ${OBJECT_DETECTION_ROOT}/detectors/src
+  ${OBJECT_DETECTION_ROOT}/detectors/src/models
+  ${OBJECT_DETECTION_ROOT}/build/_deps/neuriplo-src/backends/src
+  ${OBJECT_DETECTION_ROOT}/build/_deps/neuriplo-src/include
   ${OBJECT_DETECTION_ROOT}/app/inc
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -36,6 +40,7 @@ include_directories(
 link_directories(
   ${OBJECT_DETECTION_ROOT}/build
   ${OBJECT_DETECTION_ROOT}/build/detectors
+  ${OBJECT_DETECTION_ROOT}/build/_deps/neuriplo-build
 )
 
 # Create the ROS2 node executable
@@ -56,6 +61,7 @@ ament_target_dependencies(object_detection_node
 target_link_libraries(object_detection_node
   ${OpenCV_LIBS}
   detectors
+  neuriplo
   glog
 )
 

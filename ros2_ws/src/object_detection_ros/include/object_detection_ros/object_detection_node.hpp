@@ -4,11 +4,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/image_transport.hpp>
 
 #include "DetectorSetup.hpp"
 #include "Detection.hpp"
+#include "InferenceBackendSetup.hpp"
+#include "InferenceInterface.hpp"
 
 namespace object_detection_ros {
 
@@ -22,16 +24,17 @@ private:
     vision_msgs::msg::Detection2DArray createDetectionMessage(
         const std::vector<Detection>& detections,
         const std_msgs::msg::Header& header);
-    
+
     // ROS2 publishers/subscribers
     image_transport::Subscriber image_sub_;
     rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr detection_pub_;
     image_transport::Publisher debug_image_pub_;
-    
+
     // Object detection
+    std::unique_ptr<InferenceInterface> engine_;
     std::unique_ptr<Detector> detector_;
     std::vector<std::string> class_labels_;
-    
+
     // Parameters
     std::string model_type_;
     std::string weights_path_;
