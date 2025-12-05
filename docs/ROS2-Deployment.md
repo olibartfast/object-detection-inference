@@ -18,33 +18,29 @@ The ROS2 wrapper provides a bridge between the object-detection-inference librar
 - Built object-detection-inference library
 
 ### ROS2 Installation
-If you haven't installed ROS2 yet:
 
+**Recommended for Ubuntu 24.04 (Jazzy):**
+We provide a convenience script to install ROS2 Jazzy and all dependencies:
 ```bash
-# For Ubuntu 22.04 - ROS2 Humble
-sudo apt update && sudo apt install -y software-properties-common
-sudo add-apt-repository universe
-sudo apt update && sudo apt install -y curl
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-sudo apt update
-sudo apt install -y ros-humble-desktop
-
-# For Ubuntu 24.04 - ROS2 Jazzy
-# Similar process with ros-jazzy-desktop
+cd ros2_ws/src/object_detection_ros
+./install_ros2_jazzy.sh
 ```
 
-### Required ROS2 Packages
-```bash
-# Source ROS2
-source /opt/ros/humble/setup.bash  # or jazzy
+**Manual Installation (Ubuntu 22.04 / 24.04):**
+If you prefer to install manually, follow the official [ROS 2 Installation Guide](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debians.html).
 
-# Install required packages
+After installing ROS 2, install the required vision packages:
+
+```bash
+# Replace 'jazzy' with 'humble' for Ubuntu 22.04
+export ROS_DISTRO=jazzy
+source /opt/ros/$ROS_DISTRO/setup.bash
+
 sudo apt install -y \
-    ros-humble-vision-msgs \
-    ros-humble-cv-bridge \
-    ros-humble-image-transport \
-    ros-humble-usb-cam
+    ros-$ROS_DISTRO-vision-msgs \
+    ros-$ROS_DISTRO-cv-bridge \
+    ros-$ROS_DISTRO-image-transport \
+    ros-$ROS_DISTRO-usb-cam
 ```
 
 ## Building the Object Detection Library
@@ -69,8 +65,8 @@ cmake --build .
 # Navigate to ROS2 workspace
 cd /workspaces/object-detection-inference/ros2_ws
 
-# Source ROS2
-source /opt/ros/humble/setup.bash
+# Source ROS2 (replace 'jazzy' with 'humble' if needed)
+source /opt/ros/jazzy/setup.bash
 
 # Build the package
 colcon build --packages-select object_detection_ros
