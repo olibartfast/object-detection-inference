@@ -79,7 +79,12 @@ source install/setup.bash
 
 ### Basic Launch
 
-Launch the detection node with a custom image topic:
+First, ensure the shared libraries are in your library path:
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../build/detectors:$(pwd)/../../build/_deps/neuriplo-build
+```
+
+Then launch the detection node:
 
 ```bash
 ros2 launch object_detection_ros detection.launch.py \
