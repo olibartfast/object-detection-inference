@@ -5,16 +5,16 @@
 
 C++ framework for [real-time object detection](https://leaderboard.roboflow.com/), supporting multiple deep learning backends and input sources. Run state-of-the-art object detection models on video streams, video files, or images with configurable hardware acceleration.
 
-> 🚧 Status: Under Development — expect frequent updates.
+> 🚧 Status: Under Development — expect frequent updates. Once the `vision-inference` feature branch is completed, the repository and project references will be renamed accordingly.
 
-## 🚀 Key Features
+## Key Features
 
-- **Multiple Object Detection Models**: Supported via [vision-core library](https://github.com/olibartfast/vision-core/) (YOLOv4-v12, RT-DETR v1/v2/v4, D-FINE, DEIM v1/v2, RF-DETR)
+- **Multiple Object Detection Models**: Supported via [vision-core library](https://github.com/olibartfast/vision-core/) (YOLOv4-v12, YOLO26, RT-DETR v1/v2/v4, D-FINE, DEIM v1/v2, RF-DETR)
 - **Switchable Inference Backends**: OpenCV DNN, ONNX Runtime, TensorRT, Libtorch, OpenVINO, Libtensorflow (via [neuriplo library](https://github.com/olibartfast/neuriplo/))
 - **Real-time Video Processing**: Multiple video backends via [VideoCapture library](https://github.com/olibartfast/videocapture/) (OpenCV, GStreamer, FFmpeg)
 - **Docker Deployment Ready**: Multi-backend container support
 
-## 🔧 Requirements
+## Requirements
 
 ### Core Dependencies
 - CMake (≥ 3.15)
@@ -35,19 +35,9 @@ This project automatically fetches:
 2. [neuriplo](https://github.com/olibartfast/neuriplo) - Provides inference backend abstractions and version management.
 3. [videocapture](https://github.com/olibartfast/videocapture) - Handles video I/O.
 
-#### 🚀 Quick Setup (Recommended)
-```bash
-# 1. Setup default backend (OPENCV_DNN - no additional dependencies required)
-./scripts/setup_dependencies.sh
 
-# 2. Build project
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
-
-#### 🔧 Alternative Backends
-For other inference backends, setup dependencies first:
+## Setup
+For the selected inference backends, set up the required dependencies first:
 
 - **ONNX Runtime**:
   ```bash
@@ -85,12 +75,10 @@ For other inference backends, setup dependencies first:
   ./scripts/setup_dependencies.sh --backend all
   ```
 
-## 🏗 Building
-
-### Complete Build (Shared Library + Application)
+## Building
 ```bash
 mkdir build && cd build
-cmake -DDEFAULT_BACKEND=<backend> -DBUILD_ONLY_LIB=OFF -DCMAKE_BUILD_TYPE=Release ..
+cmake -DDEFAULT_BACKEND=<backend> -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
@@ -103,39 +91,24 @@ The VideoCapture library supports multiple video processing backends with the fo
 
 ```bash
 # Enable GStreamer support
-cmake -DDEFAULT_BACKEND=<backend> -DBUILD_ONLY_LIB=OFF -DUSE_GSTREAMER=ON -DCMAKE_BUILD_TYPE=Release ..
+cmake -DDEFAULT_BACKEND=<backend>  -DUSE_GSTREAMER=ON -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 
 # Enable FFmpeg support
-cmake -DDEFAULT_BACKEND=<backend> -DBUILD_ONLY_LIB=OFF -DUSE_FFMPEG=ON -DCMAKE_BUILD_TYPE=Release ..
+cmake -DDEFAULT_BACKEND=<backend>  -DUSE_FFMPEG=ON -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 
 # Enable both (FFmpeg takes priority)
-cmake -DDEFAULT_BACKEND=<backend> -DBUILD_ONLY_LIB=OFF -DUSE_GSTREAMER=ON -DUSE_FFMPEG=ON -DCMAKE_BUILD_TYPE=Release ..
+cmake -DDEFAULT_BACKEND=<backend>  -DUSE_GSTREAMER=ON -DUSE_FFMPEG=ON -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
-
----
-
-### Library-Only Build
-```bash
-mkdir build && cd build
-cmake -DBUILD_ONLY_LIB=ON -DDEFAULT_BACKEND=<backend> -DCMAKE_BUILD_TYPE=Release ..
-cmake --build .
-```
-
----
 
 ### Inference Backend Options
 Replace `<backend>` with one of the supported options. See [Dependency Management Guide](docs/DependencyManagement.md) for complete list and details.
 
-### Test Builds
+### Test Build
 ```bash
-# App tests
 cmake -DENABLE_APP_TESTS=ON ..
-
-# Library tests
-cmake -DENABLE_DETECTORS_TESTS=ON ..
 ```
 
 ## 💻 App Usage
@@ -164,6 +137,7 @@ cmake -DENABLE_DETECTORS_TESTS=ON ..
   - `yolov4`: YOLOv4/YOLOv4-tiny models
   - `yolo`: YOLOv5, YOLOv6, YOLOv7, YOLOv8, YOLOv9, YOLO11, YOLOv12 models
   - `yolov10`: YOLOv10 models (different postprocessing)
+  - `yolo26`: YOLO26 models (different postprocessing, i.e. same of yolov10)
   - `yolonas`: YOLO-NAS models
   - `rtdetr`: RT-DETR, RT-DETRv2, RT-DETRv4, D-FINE, DEIM, DEIMv2 models
   - `rtdetrul`: RT-DETR Ultralytics implementation
@@ -208,14 +182,14 @@ cmake -DENABLE_DETECTORS_TESTS=ON ..
 ```bash
 # YOLOv8 Onnx Runtime image processing
 ./object-detection-inference \
-  --type=yolov8 \
+  --type=yolo \
   --source=image.png \
   --weights=models/yolov8s.onnx \
   --labels=data/coco.names
 
 # YOLOv8 TensorRT video processing
 ./object-detection-inference \
-  --type=yolov8 \
+  --type=yolo \
   --source=video.mp4 \
   --weights=models/yolov8s.engine \
   --labels=data/coco.names \
@@ -231,7 +205,7 @@ cmake -DENABLE_DETECTORS_TESTS=ON ..
 
 *Check the [`.vscode folder`](.vscode/launch.json) for other examples.*
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Building Images
 Inside the project, in the [Dockerfiles folder](docker), there will be a dockerfile for each inference backend (currently onnxruntime, libtorch, tensorrt, openvino)
@@ -288,7 +262,7 @@ ros2 launch object_detection_ros detection.launch.py \
 For complete ROS2 deployment instructions, see the [ROS2 Deployment Guide](docs/ROS2-Deployment.md).
 
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Detector Architectures Guide](docs/DetectorArchitectures.md)
 - [ROS2 Deployment Guide](docs/ROS2-Deployment.md)
@@ -309,7 +283,7 @@ For complete ROS2 deployment instructions, see the [ROS2 Deployment Guide](docs/
  - https://paperswithcode.com/sota/real-time-object-detection-on-coco (No more available)
  - https://leaderboard.roboflow.com/
 
-## 📫 Support
+## Support
 
 - Open an [issue](https://github.com/olibartfast/object-detection-inference/issues) for bug reports or feature requests: contributions, corrections, and suggestions are welcome to keep this repository relevant and useful.
 - Check existing issues for solutions to common problems
