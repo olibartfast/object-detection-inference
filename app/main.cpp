@@ -1,8 +1,8 @@
-#include "ObjectDetectionApp.hpp"
+#include "VisionApp.hpp"
 int main(int argc, char *argv[]) {
     try {
         AppConfig config = CommandLineParser::parseCommandLineArguments(argc, argv);
-        ObjectDetectionApp app(config);
+        VisionApp app(config);
         app.run();
     } catch (const std::exception& e) {
         LOG(ERROR) << "Error: " << e.what();
