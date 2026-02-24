@@ -3,7 +3,7 @@
 # NOTE: OPENVINO_VERSION must be declared as a hardcoded ARG here (before FROM)
 # because Docker evaluates FROM instructions before any RUN commands can execute.
 # This means versions.env cannot be sourced to populate it at build time.
-# Keep this version in sync with OPENVINO_VERSION in build/_deps/neuriplo-src/versions.env.
+# Keep this version in sync with OPENVINO_VERSION in the neuriplo versions.env.
 ARG OPENVINO_VERSION=2025.4.1
 
 # Stage 1: Build
@@ -29,7 +29,11 @@ RUN apt-get update \
     libgoogle-glog-dev \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-COPY build/_deps/neuriplo-src/versions.env /tmp/versions.env
+COPY versions.env /tmp/project_versions.env
+RUN . /tmp/project_versions.env && \
+    wget -q -O /tmp/versions.env \
+    https://raw.githubusercontent.com/olibartfast/neuriplo/${NEURIPLO_VERSION}/versions.env \
+    || { echo "Failed to download neuriplo versions.env for version ${NEURIPLO_VERSION}"; exit 1; }
 
 ARG BACKEND=OPENVINO
 

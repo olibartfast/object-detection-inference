@@ -18,7 +18,11 @@ RUN apt-get update && apt-get upgrade -y && \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build/_deps/neuriplo-src/versions.env /tmp/versions.env
+COPY versions.env /tmp/project_versions.env
+RUN . /tmp/project_versions.env && \
+    wget -q -O /tmp/versions.env \
+    https://raw.githubusercontent.com/olibartfast/neuriplo/${NEURIPLO_VERSION}/versions.env \
+    || { echo "Failed to download neuriplo versions.env for version ${NEURIPLO_VERSION}"; exit 1; }
 
 # Stage 2: Install TensorRT dependencies
 FROM cuda_dependencies AS backend_dependencies
